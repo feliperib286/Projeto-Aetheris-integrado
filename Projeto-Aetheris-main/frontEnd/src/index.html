@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Aetheris</title>
+    <link rel="stylesheet" href="style.css"> 
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+</head>
+<body>
+      <!-- Painel lateral com aba -->
+
+    <div id="sidebar">
+        <div id="aba" onclick="toggleMenu()">➤</div>
+
+        <h1> Aetheris</h1>
+        <img src="logo_aetheris.png" alt="Logo Aetheris" class="logo">
+        
+       <div class="tag-selector">
+      <div id="selected-tags" class="selected-tags"></div>
+      <input type="text" id="tag-input" placeholder="Buscar ou selecionar..." autocomplete="off" />
+      <ul id="suggestions" class="suggestions"></ul>
+    </div>
+    </div>
+
+  <!-- Mapa -->
+
+    <div id="map"></div>
+      <!-- Script -->
+  <script>
+    function toggleMenu() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('ativo');
+    }
+  </script>
+    <script src="script.js"></script>
+</body>
+</html>
