@@ -1,12 +1,16 @@
-/* Resetando margens e preenchimentos básicos do body e html,
-   definindo altura total da tela e aplicando uma fonte padrão */
+/* ========================================================
+   RESET & CONFIGURAÇÕES GERAIS
+   ======================================================== */
+
+/* Resetando margens, preenchimentos e altura total */
 body, html {
   margin: 0;
   padding: 0;
   height: 100%;
   font-family: Arial, sans-serif;
 }
-/*========================================================
+
+/* ========================================================
    ÍCONE DO MENU (botão de hambúrguer)
    ======================================================== */
 #menu-icon {
@@ -24,17 +28,20 @@ body, html {
    MAPA (Leaflet.js)
    ======================================================== */
 
-/* Área do mapa ocupando toda a largura e altura disponíveis */
+/* Ocupa toda a tela */
 #map {
-  width: 100%;
   height: 100%;
+  width: 100%;
   position: absolute;
   top: 0;
   left: 0;
   z-index: 0;
 }
 
-/* Painel lateral que aparece vindo de baixo */
+/* ========================================================
+   SIDEBAR (Painel lateral retrátil)
+   ======================================================== */
+
 #sidebar {
   position: fixed;
   top: 0;
@@ -55,6 +62,7 @@ body, html {
 #sidebar.ativo {
   left: 0;
 }
+
 /* Aba que fica visível quando a sidebar está fechada */
 #aba {
   position: absolute;
@@ -74,6 +82,7 @@ body, html {
   border-bottom-right-radius: 8px;
   font-size: 20px;
 }
+
 /* Botões dentro do sidebar */
 #sidebar button {
   background: none;
@@ -91,13 +100,12 @@ body, html {
   text-align: center;
 }
 
-
-/* Estilo da logo dentro do painel */
+/* Logo (imagem) centralizada */
 .logo {
   display: block;
-  margin: 0 auto 15px; /* Centralizada e com espaçamento inferior */
-  width: 70%; /* Reduz a largura da imagem */
-  opacity: 0.9; /* Leve transparência */
+  margin: 0 auto 15px;
+  width: 70%;
+  opacity: 0.9;
 }
 
 /* ========================================================
@@ -113,19 +121,20 @@ body, html {
   gap: 10px; /* Sem efeito com display: block, válido se usar grid/flex */
 }
 
-/* Cada item da lista (li) dentro do sidebar */
+/* Estilo de cada item da lista */
 #sidebar li {
-  display: flex; /* Coloca conteúdo lado a lado */
-  margin-top: 6%; /* Espaçamento superior relativo */
-  align-items: center; /* Alinha checkbox e texto verticalmente */
+  display: flex;
+  margin-top: 6%;
+  align-items: center;
 }
 
-/* Estilo específico para checkboxes */
+/* Estilo dos checkboxes */
 #sidebar input[type="checkbox"] {
-  margin-right: 8px; /* Espaço entre checkbox e texto */
-  accent-color: #4CAF50; /* Cor do checkbox (verde) */
+  margin-right: 8px;
+  accent-color: #4CAF50;
 }
-/*========================================================
+
+/* ========================================================
    SELETOR DE TAGS (Tag Input)
    ======================================================== */
 
@@ -205,3 +214,51 @@ body, html {
   box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
 }
 
+/* Estilos para o conteúdo do Popup do Leaflet */
+
+/* Estilo geral do conteúdo para garantir espaçamento interno */
+.leaflet-popup-content {
+    padding: 10px;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+}
+
+/* Estilo para o cabeçalho/coordenadas do popup */
+.satelite-popup-header {
+    font-size: 1.1em;
+    margin-bottom: 5px;
+    color: #0056b3;
+}
+
+.satelite-popup-header strong {
+    font-weight: bold;
+}
+
+/* Linha divisória fina */
+.satelite-popup-divider {
+    border: 0;
+    height: 1px;
+    background-color: #ccc;
+    margin: 10px 0;
+}
+
+/* Bloco individual de informação do produto */
+.product-info-block {
+    margin-bottom: 15px;
+    padding: 8px;
+    border-left: 3px solid #007bff;
+    background-color: #f7f7f7;
+}
+
+.product-info-block strong {
+    display: block;
+    margin-bottom: 3px;
+    color: #333;
+}
+
+.product-info-block p {
+    margin: 0;
+    font-size: 0.9em;
+    color: #444;
+    white-space: pre-wrap;
+}
