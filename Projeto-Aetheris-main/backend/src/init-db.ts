@@ -1,78 +1,125 @@
 import axios from 'axios';
 import { MongoClient } from 'mongodb';
 
-const INPE_COLLECTIONS_URL = 'https://data.inpe.br/bdc/stac/v1/collections';
+const STAC_COLLECTIONS_URL = 'https://data.inpe.br/bdc/stac/v1/collections';
+const WTSS_BASE_URL = 'https://data.inpe.br/bdc/wtss/v4/';
 const MONGO_URL = 'mongodb://localhost:27017';
 const DB_NAME = 'aetheris_db';
 
+const platformMapping: { [key: string]: string } = {
+    'L8': 'landsat8', 
+    'LANDSAT_8': 'landsat8',
+    'LCC_L8': 'landsat8',
+    'S2': 'sentinel2',
+    'SENTINEL_2': 'sentinel2',
+    'S2_MSI': 'sentinel2',
+    'CB4A': 'cbers4a',
+    'CB4': 'cbers4',
+    'MOD13': 'modis',
+    'MYD13': 'modis',
+    'GOES': 'goes16',
+};
+
+function inferPlatformId(collectionId: string): string | null {
+    const id = collectionId.toUpperCase();
+    for (const [key, value] of Object.entries(platformMapping)) {
+        if (id.includes(key.toUpperCase())) {
+            return value;
+        }
+    }
+    return null;
+}
+
 async function initializeDatabase() {
-  console.log('Iniciando script de inicialização do banco de dados...');
-  const client = new MongoClient(MONGO_URL);
+    console.log('Iniciando script de inicialização do banco de dados...');
+    const client = new MongoClient(MONGO_URL);
 
-  try {
-    //Conexão com o MongoDB
-    await client.connect();
-    const db = client.db(DB_NAME);
-    console.log(`Conectado ao MongoDB. Usando o banco de dados: ${DB_NAME}`);
+    try {
+        await client.connect();
+        const db = client.db(DB_NAME);
+        console.log(`Conectado ao MongoDB. Usando o banco de dados: ${DB_NAME}`);
 
-    //Bloco para verificar e criar coleções
-    const requiredCollections = ['data_products', 'location_cache', 'timeseries_cache'];
-    const existingCollections = await db.listCollections().toArray();
-    const existingCollectionNames = existingCollections.map(c => c.name);
+        const requiredCollections = ['stac', 'location_cache', 'wtss'];
+        const existingCollections = await db.listCollections().toArray();
+        const existingCollectionNames = existingCollections.map(c => c.name);
 
-    for (const collectionName of requiredCollections) {
-      if (!existingCollectionNames.includes(collectionName)) {
-        await db.createCollection(collectionName);
-        console.log(`Coleção "${collectionName}" criada com sucesso.`);
-      } else {
-        console.log(`Coleção "${collectionName}" já existe. Pulando criação.`);
-      }
-    }
+        for (const collectionName of requiredCollections) {
+            if (!existingCollectionNames.includes(collectionName)) {
+                await db.createCollection(collectionName);
+                console.log(`Coleção "${collectionName}" criada com sucesso.`);
+            } else {
+                console.log(`Coleção "${collectionName}" já existe. Pulando criação.`);
+            }
+        }
 
-    //Lógica de Sincronização
-    console.log('Iniciando sincronização dos produtos de dados...');
-    const productsCollection = db.collection('data_products');
-    
-    const initialResponse = await axios.get(INPE_COLLECTIONS_URL);
-    const collections = initialResponse.data.collections;
-    console.log(`Encontradas ${collections.length} coleções na API do INPE.`);
+        // --- Lógica de Sincronização STAC ---
+        console.log('Iniciando sincronização dos produtos de dados STAC...');
+        const stacCollection = db.collection('stac');
+        const stacResponse = await axios.get(STAC_COLLECTIONS_URL);
+        const stacCollections = stacResponse.data.collections;
+        console.log(`Encontradas ${stacCollections.length} coleções na API STAC.`);
+        await stacCollection.deleteMany({});
+        console.log('Coleção "stac" limpa para receber dados atualizados.');
 
-    await productsCollection.deleteMany({});
-    console.log('Coleção "data_products" limpa para receber dados atualizados.');
+        const newStacProducts = [];
+        for (const collection of stacCollections) {
+            try {
+                const detailUrl = `https://data.inpe.br/bdc/stac/v1/collections/${collection.id}`;
+                const detailResponse = await axios.get(detailUrl);
+                const collectionDetails = detailResponse.data;
+                const productToInsert = { ...collectionDetails };
+                productToInsert.productName = collectionDetails.id;
+                productToInsert.platformId = inferPlatformId(collection.id);
+                productToInsert.variables = collectionDetails.properties?.['eo:bands'] || collectionDetails['cube:dimensions']?.bands?.values || [];
+                newStacProducts.push(productToInsert);
+            } catch (e) {
+                console.error(`Falha ao buscar detalhes STAC para ${collection.id}. Pulando.`);
+            }
+        }
+        if (newStacProducts.length > 0) {
+            await stacCollection.insertMany(newStacProducts);
+            console.log(`Sincronização STAC concluída! ${newStacProducts.length} produtos inseridos.`);
+        }
 
-    const newProducts = [];
-    for (const collection of collections) {
-      try {
-        const detailUrl = `https://data.inpe.br/bdc/stac/v1/collections/${collection.id}`;
-        const detailResponse = await axios.get(detailUrl);
-        const collectionDetails = detailResponse.data;
+        // --- Lógica de Sincronização WTSS ---
+        console.log('\nIniciando sincronização dos produtos de dados WTSS...');
+        const wtssCollection = db.collection('wtss');
+        await wtssCollection.deleteMany({});
+        console.log('Coleção "wtss" limpa para receber dados atualizados.');
+
+        const listCoveragesUrl = `${WTSS_BASE_URL}list_coverages`;
+        const coveragesResponse = await axios.get(listCoveragesUrl);
+        const coverages = coveragesResponse.data.coverages;
+        console.log(`Encontradas ${coverages.length} coberturas na API WTSS.`);
+
+        const newWtssProducts = [];
+        for (const coverageName of coverages) {
+            try {
+                console.log(`Buscando detalhes WTSS para: ${coverageName}`);
+                
+                // A URL correta é a base + o nome da cobertura, sem "describe_coverage".
+                const detailUrl = `${WTSS_BASE_URL}${coverageName}`;
+                
+                const detailResponse = await axios.get(detailUrl);
+                const coverageDetails = detailResponse.data;
+                newWtssProducts.push(coverageDetails);
+
+            } catch (e) {
+                console.error(`Falha ao buscar detalhes WTSS para ${coverageName}. Pulando.`);
+            }
+        }
         
-        const detailedBands = collectionDetails.properties?.['eo:bands'] || collectionDetails['cube:dimensions']?.bands?.values || [];
+        if (newWtssProducts.length > 0) {
+            await wtssCollection.insertMany(newWtssProducts);
+            console.log(`Sincronização WTSS concluída! ${newWtssProducts.length} produtos inseridos.`);
+        }
 
-        newProducts.push({
-          productName: collectionDetails.id,
-          friendlyName: collectionDetails.title || collectionDetails.id,
-          description: collectionDetails.description,
-          variables: detailedBands 
-        });
-      } catch (e) {
-        console.error(`Falha ao buscar detalhes para ${collection.id}. Pulando.`);
-      }
+    } catch (error) {
+        console.error('Ocorreu um erro durante a inicialização:', error);
+    } finally {
+        await client.close();
+        console.log('Conexão com o MongoDB fechada. Script finalizado.');
     }
-
-    if (newProducts.length > 0) {
-      await productsCollection.insertMany(newProducts);
-      console.log(`Sincronização concluída! ${newProducts.length} produtos detalhados foram inseridos.`);
-    } else {
-      console.log('Nenhum produto para inserir.');
-    }
-
-  } catch (error) {
-    console.error('Ocorreu um erro durante a inicialização:', error);
-  } finally {
-    await client.close();
-    console.log('Conexão com o MongoDB fechada. Script finalizado.');
-  }
 }
 
 initializeDatabase();

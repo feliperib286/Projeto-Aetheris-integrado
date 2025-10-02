@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Aetheris</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  
+</head>
+<body>
+
+  <div id="sidebar">
+    <div id="aba" onclick="toggleMenu()">➤</div>
+
+    <h1>Aetheris</h1>
+    <img src="logo aetheris.png" alt="Logo" class="logo">
+
+    <div class="tag-selector">
+      <div id="selected-tags" class="selected-tags"></div>
+      <input type="text" id="tag-input" placeholder="Buscar ou selecionar..." autocomplete="off" />
+      <ul id="suggestions" class="suggestions"></ul>
+    </div>
+  </div>
+
+  <div id="map"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
