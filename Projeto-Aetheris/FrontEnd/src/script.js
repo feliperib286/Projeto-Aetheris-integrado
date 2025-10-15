@@ -173,12 +173,12 @@ function applyScale(rawValue) {
     return rawValue * 0.0001;
 }
 
+// Esta função é apenas para compatibilidade, o botão STAC foi removido.
 window.fetchTimeSeriesAndPlot = async function (lat, lng, coverage, band, friendlyName) {
     const tempContent = `<div class="satelite-popup-header"><strong>Carregando Série Temporal STAC...</strong></div><p>Produto: ${friendlyName}</p><p>Aguarde...</p>`;
     showInfoPanelSTAC(tempContent);
 
     try {
-        // 'band' agora deve ser uma lista de bandas separadas por vírgula
         const bandQuery = band ? `&bands=${band}` : ''; 
         const response = await fetch(`http://localhost:3000/api/timeseries?lat=${lat}&lng=${lng}&coverage=${coverage}${bandQuery}`);
         
@@ -227,12 +227,13 @@ function createChart(lat, lng, title, timeSeriesData) {
         };
     });
 
+
     const panelHtml = `
         <div class="chart-popup-content">
             <div class="satelite-popup-header"><strong>Série Temporal STAC: ${title}</strong></div>
             <p>Atributos: ${bands.join(', ')}</p>
             <hr class="satelite-popup-divider">
-            <div style="position: relative; height: 70%; width: 100%;">
+            <div style="position: relative; height: 300px; width: 100%;"> 
                 <canvas id="${chartId}"></canvas>
             </div>
             <p class="chart-footer" style="font-size: 0.7em;">Valores reais (escala padrão aplicada).</p>
@@ -325,21 +326,20 @@ window.fetchWTSSTimeSeriesAndPlot = async function (lat, lon, coverage, attribut
     try {
         const baseUrl = "https://data.inpe.br/bdc/wtss/v4/";
         
-        const detailUrl = `${baseUrl}${coverage}`; 
-        const datasetResponse = await fetch(detailUrl);
+        // --- LÓGICA DE CÁLCULO DE PERÍODO (10 ANOS) ---
+        const now = new Date();
+        // A data é obtida subtraindo 10 anos
+        const date10YearsAgo = new Date(now.getFullYear() - 10, now.getMonth(), now.getDate());
         
-        if (!datasetResponse.ok) throw new Error("Erro ao buscar detalhes de cobertura WTSS para período temporal.");
+        // Define o período no formato YYYY-MM-DD
+        const calculated_end_date = now.toISOString().split('T')[0]; 
+        const calculated_start_date = date10YearsAgo.toISOString().split('T')[0];
+        // ---------------------------------------------
         
-        const datasetDetails = await datasetResponse.json();
-        
-        const timeline = datasetDetails.timeline;
-        const start_date = timeline[0];
-        const end_date = timeline[timeline.length - 1];
-        
-        const timeSeriesUrl = `${baseUrl}time_series?coverage=${coverage}&attributes=${attribute}&start_date=${start_date}&end_date=${end_date}&latitude=${lat}&longitude=${lon}`;
+        const timeSeriesUrl = `${baseUrl}time_series?coverage=${coverage}&attributes=${attribute}&start_date=${calculated_start_date}&end_date=${calculated_end_date}&latitude=${lat}&longitude=${lon}`;
         
         const timeSeriesResponse = await fetch(timeSeriesUrl);
-        if (!timeSeriesResponse.ok) throw new Error("Erro ao buscar série WTSS.");
+        if (!timeSeriesResponse.ok) throw new Error(`Erro ${timeSeriesResponse.status} ao buscar série WTSS.`);
         
         const timeSeriesData = await timeSeriesResponse.json();
         
@@ -348,11 +348,12 @@ window.fetchWTSSTimeSeriesAndPlot = async function (lat, lon, coverage, attribut
         
         if (!attrData || !attrData.values || attrData.values.length === 0) {
              console.warn(`WTSS: Nenhum valor encontrado para o atributo ${attribute}.`, timeSeriesData);
-             showInfoPanelWTSS(`<div class="satelite-popup-header"><strong>Série Temporal WTSS: ${friendlyName}</strong></div><p>Nenhum dado de valor encontrado para o atributo <strong>${attribute}</strong>.</p>`);
+             showInfoPanelWTSS(`<div class="satelite-popup-header"><strong>Série Temporal WTSS: ${friendlyName}</strong></div><p>Nenhum dado de valor encontrado para o atributo <strong>${attribute}</strong> no período ${calculated_start_date} a ${calculated_end_date}.</p>`);
              return;
         }
 
-        createWTSSTimeSeriesChart(friendlyName, attrData.values, timeline, attribute);
+        // Passa a timeline retornada pela requisição para a plotagem
+        createWTSSTimeSeriesChart(friendlyName, attrData.values, timeSeriesData.result.timeline, attribute);
         
     } catch (error) {
         console.error('Erro ao plotar série temporal WTSS:', error);
@@ -406,6 +407,13 @@ function createWTSSTimeSeriesChart(title, values, timeline, attribute) {
 
 // Cria o painel WTSS com o seletor
 function createWTSSPanel(result, lat, lon) {
+    // --- CÁLCULO DE PERÍODO (10 ANOS) PARA EXIBIÇÃO NO PAINEL ---
+    const now = new Date();
+    const date10YearsAgo = new Date(now.getFullYear() - 10, now.getMonth(), now.getDate());
+    const calculated_start_date = date10YearsAgo.toISOString().split('T')[0];
+    const calculated_end_date = now.toISOString().split('T')[0];
+    // -----------------------------------------------------------
+
     if (result.error) {
         showInfoPanelWTSS(`
             <h3>📈 Série Temporal WTSS</h3>
@@ -440,7 +448,7 @@ function createWTSSPanel(result, lat, lon) {
                 fetchWTSSTimeSeriesAndPlot(${lat}, ${lon}, '${result.title}', selectEl.value, '${friendlyName}');
             " 
             class="action-button">
-            Plotar Série Temporal
+            Plotar Série Temporal (Últimos 10 anos)
         </button>
     `;
 
@@ -448,7 +456,7 @@ function createWTSSPanel(result, lat, lon) {
         <div class="wtss-panel">
             <h3>📈 Série Temporal WTSS</h3>
             <p><b>Cobertura:</b> ${result.title}</p>
-            <p><b>Período:</b> ${result.start_date} → ${result.end_date}</p>
+            <p><b>Período Solicitado:</b> ${calculated_start_date} → ${calculated_end_date}</p>
             <p><b>Atributo:</b> ${attributeSelector}</p>
             ${actionButton}
         </div>
@@ -472,7 +480,7 @@ map.on('click', async function (e) {
     showInfoPanelSTAC("<strong>📍 Ponto selecionado</strong><br>Buscando produtos STAC...");
 
     try {
-        // --- LÓGICA STAC: VOLTA AO COMPORTAMENTO ORIGINAL SEM DROPDOWN ---
+        // --- LÓGICA STAC: APENAS METADADOS (SEM BOTÃO DE SÉRIE TEMPORAL) ---
         const satelitesQuery = selectedTags.map(tag => sateliteIdMap[tag]).filter(id => id).join(',');
         const response = await fetch(`http://localhost:3000/api/geodata?lat=${lat}&lng=${lng}&satelites=${satelitesQuery}`);
         if (!response.ok) throw new Error(`Erro ao buscar metadados STAC: ${response.status}`);
@@ -484,23 +492,10 @@ map.on('click', async function (e) {
             data.forEach(item => {
                 const popularName = productNameToPopularName[item.productName] || item.productName;
                 
-                // Mapeamento correto das bandas (atributos)
                 const availableBands = (item.variables || []).map(v => v.name || v.id).filter(Boolean);
                 
-                // --- LÓGICA REVERTIDA: Define bandas padrão para requisição e exibição ---
-                let bandsToRequest = availableBands.slice(0, 2).join(',');
-                if (bandsToRequest.length === 0) {
-                    bandsToRequest = availableBands[0] || ''; // Tenta a primeira se houver
-                }
-                let buttonLabel = `Ver Série Temporal (${bandsToRequest || 'Padrão'})`;
+                // === REMOÇÃO DO BOTÃO DE SÉRIE TEMPORAL ===
                 
-                const actionButton = `
-                    <button 
-                        onclick="fetchTimeSeriesAndPlot(${lat}, ${lng}, '${item.productName}', '${bandsToRequest}', '${popularName}')" 
-                        class="action-button">
-                        ${buttonLabel}
-                    </button>`;
-
                 panelContent += `
                     <div class="product-info-block">
                         <strong class="product-title">🛰️ ${popularName}</strong>
@@ -509,9 +504,7 @@ map.on('click', async function (e) {
                             <p class="product-description">${item.title || 'Sem descrição disponível.'}</p>
                             <p class="product-bands"><strong>Bandas:</strong> ${availableBands.join(', ') || 'N/A'}</p>
                         </div>
-                        ${actionButton}
-                    </div>`;
-                // --- FIM DA LÓGICA REVERTIDA ---
+                    </div>`; // Não há ${actionButton} aqui.
             });
         } else {
             panelContent += `<p>Nenhum produto STAC encontrado para os filtros ativos.</p>`;
@@ -519,7 +512,7 @@ map.on('click', async function (e) {
 
         showInfoPanelSTAC(panelContent);
 
-        // --- LÓGICA WTSS (cria o seletor) ---
+        // --- LÓGICA WTSS ---
         const wtssResult = await getWTSSData(lat, lng);
         if (wtssResult) createWTSSPanel(wtssResult, lat, lng); 
 
@@ -527,7 +520,6 @@ map.on('click', async function (e) {
         console.error('Erro geral no clique do mapa:', error);
         showInfoPanelSTAC(`<div style="color:red;"><strong>Erro Geral:</strong> ${error.message}</div>`);
         
-        // Tenta mostrar o painel WTSS, que agora trata seus próprios erros
         const wtssResult = await getWTSSData(lat, lng);
         if (wtssResult) createWTSSPanel(wtssResult, lat, lng);
     }
