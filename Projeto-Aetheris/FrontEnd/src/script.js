@@ -5,7 +5,7 @@ const BR_BOUNDS = [[-34.0, -74.0], [5.3, -34.0]];
 const map = L.map('map', {
     maxBounds: BR_BOUNDS,
     maxBoundsViscosity: 2.0,
-    minZoom: 1, 
+    minZoom: 5,
     maxZoom: 15
 }).setView([-14.2, -51.9], 4);
 
@@ -56,7 +56,7 @@ const productNameToPopularName = {
     'mosaic-cbers4a-paraiba-3m-1': 'CBERS-4A (Paraíba)',
     'mosaic-cbers4-paraiba-3m-1': 'CBERS-4 (Paraíba)',
     'AMZ1-WFI-L4-SR-1': 'Amazônia-1 (WFI)',
-    'LCC_L8_30_16D_STK-Cerrado-1': 'Landsat-8 (Cerrado 16D)',
+    'LCC_L8_30_16D_STK_Cerrado-1': 'Landsat-8 (Cerrado 16D)',
     'myd13q1-6.1': 'MODIS (NDVI/EVI 16D)',
     'mosaic-s2-yanomami_territory-6m-1': 'Sentinel-2 (Yanomami 6M)',
     'LANDSAT-16D-1': 'Landsat (Data Cube 16D)',
@@ -178,6 +178,7 @@ window.fetchTimeSeriesAndPlot = async function (lat, lng, coverage, band, friend
     showInfoPanelSTAC(tempContent);
 
     try {
+        // 'band' agora deve ser uma lista de bandas separadas por vírgula
         const bandQuery = band ? `&bands=${band}` : ''; 
         const response = await fetch(`http://localhost:3000/api/timeseries?lat=${lat}&lng=${lng}&coverage=${coverage}${bandQuery}`);
         
@@ -251,7 +252,7 @@ function createChart(lat, lng, title, timeSeriesData) {
                 parsing: false,
                 scales: {
                     x: { type: 'time', time: { unit: 'month', tooltipFormat: 'dd MMM yyyy' }, title: { display: true, text: 'Data' } },
-                    y: { title: { display: true, text: 'Valor (Escala aplicada)' }, min: -0.2, max: 1.05 } 
+                    y: { title: { display: true, text: 'Valor (Escala aplicada)' }, min: -0.2, max: 1.05 }
                 }
             }
         });
@@ -262,7 +263,7 @@ function createChart(lat, lng, title, timeSeriesData) {
 // WTSS - FUNÇÕES DE DADOS E PLOTAGEM (COM FALLBACK DE ATRIBUTOS)
 // ========================================================
 
-// Nome da cobertura de referência (Usaremos esta para testes)
+// Nome da cobertura de referência
 const WTSS_REFERENCE_COVERAGE = 'LANDSAT-16D-1'; 
 
 // Fallback manual de bandas (Baseado no JSON de metadados STAC fornecido)
@@ -312,7 +313,7 @@ async function getWTSSData(lat, lon) {
         };
     } catch (err) {
         console.error("Erro ao acessar metadados WTSS:", err);
-        return { error: err.message, title: name };
+        return { error: err.message, title: name }; 
     }
 }
 
@@ -359,7 +360,7 @@ window.fetchWTSSTimeSeriesAndPlot = async function (lat, lon, coverage, attribut
     }
 };
 
-// Cria o gráfico para o WTSS (mantido)
+// Cria o gráfico para o WTSS
 function createWTSSTimeSeriesChart(title, values, timeline, attribute) {
     const chartId = `wtss-chart-${Date.now()}`;
     const panelContent = `
@@ -457,7 +458,7 @@ function createWTSSPanel(result, lat, lon) {
 }
 
 // ========================================================
-// CLIQUE NO MAPA (STAC + WTSS) - LÓGICA DE INTERAÇÃO
+// CLIQUE NO MAPA (STAC + WTSS) - LÓGICA DE INTERAÇÃO (CORRIGIDA)
 // ========================================================
 map.on('click', async function (e) {
     const { lat, lng } = e.latlng;
@@ -471,7 +472,7 @@ map.on('click', async function (e) {
     showInfoPanelSTAC("<strong>📍 Ponto selecionado</strong><br>Buscando produtos STAC...");
 
     try {
-        // --- LÓGICA STAC ---
+        // --- LÓGICA STAC: VOLTA AO COMPORTAMENTO ORIGINAL SEM DROPDOWN ---
         const satelitesQuery = selectedTags.map(tag => sateliteIdMap[tag]).filter(id => id).join(',');
         const response = await fetch(`http://localhost:3000/api/geodata?lat=${lat}&lng=${lng}&satelites=${satelitesQuery}`);
         if (!response.ok) throw new Error(`Erro ao buscar metadados STAC: ${response.status}`);
@@ -483,32 +484,21 @@ map.on('click', async function (e) {
             data.forEach(item => {
                 const popularName = productNameToPopularName[item.productName] || item.productName;
                 
+                // Mapeamento correto das bandas (atributos)
                 const availableBands = (item.variables || []).map(v => v.name || v.id).filter(Boolean);
                 
-                // Cria o seletor de bandas STAC
-                let bandSelector = '';
-                if (availableBands.length > 0) {
-                    bandSelector = `
-                        <select id="band-select-${item.productName}">
-                            ${availableBands.map(band => 
-                                `<option value="${band}">${band}</option>`
-                            ).join('')}
-                        </select>`;
-                } else {
-                    bandSelector = `<span>Sem bandas disponíveis.</span>`;
+                // --- LÓGICA REVERTIDA: Define bandas padrão para requisição e exibição ---
+                let bandsToRequest = availableBands.slice(0, 2).join(',');
+                if (bandsToRequest.length === 0) {
+                    bandsToRequest = availableBands[0] || ''; // Tenta a primeira se houver
                 }
+                let buttonLabel = `Ver Série Temporal (${bandsToRequest || 'Padrão'})`;
                 
-                const buttonId = `action-button-${item.productName}`;
                 const actionButton = `
                     <button 
-                        id="${buttonId}"
-                        onclick="
-                            const selectEl = document.getElementById('band-select-${item.productName}');
-                            const selectedBand = selectEl ? selectEl.value : '';
-                            fetchTimeSeriesAndPlot(${lat}, ${lng}, '${item.productName}', selectedBand, '${popularName}');
-                        " 
+                        onclick="fetchTimeSeriesAndPlot(${lat}, ${lng}, '${item.productName}', '${bandsToRequest}', '${popularName}')" 
                         class="action-button">
-                        Ver Série Temporal
+                        ${buttonLabel}
                     </button>`;
 
                 panelContent += `
@@ -517,12 +507,11 @@ map.on('click', async function (e) {
                         <div class="product-details">
                             <p class="product-name">(${item.productName})</p>
                             <p class="product-description">${item.title || 'Sem descrição disponível.'}</p>
-                            <p class="product-bands">
-                                <strong>Banda:</strong> ${bandSelector}
-                            </p>
+                            <p class="product-bands"><strong>Bandas:</strong> ${availableBands.join(', ') || 'N/A'}</p>
                         </div>
                         ${actionButton}
                     </div>`;
+                // --- FIM DA LÓGICA REVERTIDA ---
             });
         } else {
             panelContent += `<p>Nenhum produto STAC encontrado para os filtros ativos.</p>`;
@@ -532,7 +521,7 @@ map.on('click', async function (e) {
 
         // --- LÓGICA WTSS (cria o seletor) ---
         const wtssResult = await getWTSSData(lat, lng);
-        if (wtssResult) createWTSSPanel(wtssResult, lat, lng);
+        if (wtssResult) createWTSSPanel(wtssResult, lat, lng); 
 
     } catch (error) {
         console.error('Erro geral no clique do mapa:', error);
