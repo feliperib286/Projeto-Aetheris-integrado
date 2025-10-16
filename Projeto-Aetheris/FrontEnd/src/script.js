@@ -245,10 +245,9 @@ function createChart(lat, lng, title, timeSeriesData) {
             <div class="satelite-popup-header"><strong>Série Temporal STAC: ${title}</strong></div>
             <p>Atributos: ${bands.join(', ')}</p>
             <hr class="satelite-popup-divider">
-            <div style="position: relative; height: 300px; width: 100%;"> 
-                <canvas id="${chartId}"></canvas>
+            <div class="stac-canvas-wrapper"> <canvas id="${chartId}"></canvas>
             </div>
-            <p class="chart-footer" style="font-size: 0.7em;">Valores reais (escala padrão aplicada).</p>
+            <p class="chart-footer stac-chart-footer">Valores reais (escala padrão aplicada).</p>
         </div>`;
 
     showInfoPanelSTAC(panelHtml);
@@ -395,17 +394,17 @@ function createWTSSTimeSeriesChart(title, values, timeline, attribute, coverage)
     chartBlock.classList.add('wtss-chart-block'); 
     
     chartBlock.innerHTML = `
-        <div class="wtss-panel" style="border-top: 1px solid #666; margin-top: 15px; padding-top: 15px;">
-            <h3 style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="wtss-panel wtss-chart-container-border">
+            <h3 class="wtss-chart-header">
                 Série Temporal: ${title}
-                <span class="remove" onclick="document.getElementById('${uniqueId}').remove()" style="cursor:pointer; color: red; font-size: 1.2em;">&times;</span>
+                <span class="remove remove-chart-btn" onclick="document.getElementById('${uniqueId}').remove()">&times;</span>
             </h3>
             <p><b>Atributo:</b> ${attribute}</p>
             <hr class="satelite-popup-divider">
-            <div style="position: relative; height: 300px; width: 100%;">
+            <div class="wtss-canvas-wrapper">
                 <canvas id="canvas-${uniqueId}"></canvas>
             </div>
-            <p class="chart-footer" style="font-size: 0.7em;">Valores reais (escala padrão aplicada).</p>
+            <p class="chart-footer stac-chart-footer">Valores reais (escala padrão aplicada).</p>
         </div>
     `;
 
@@ -444,8 +443,9 @@ function createWTSSTimeSeriesChart(title, values, timeline, attribute, coverage)
         
     }, 500);
 }
-   
-// Cria o painel WTSS com o seletor (VERSÃO FINAL SEM ESTILOS EM LINHA)
+
+
+// Cria o painel WTSS com o seletor (Corrigido para remover inline styles e persistir no topo)
 function createWTSSPanel(result, lat, lon) {
     // Armazena o resultado globalmente para o botão de limpeza e regeneração do painel
     window.currentWtssResult = { ...result, lat, lon }; 
@@ -458,8 +458,14 @@ function createWTSSPanel(result, lat, lon) {
     // -----------------------------------------------------------
 
     if (result.error || !result.availableAttributes || result.availableAttributes.length === 0) {
-        // Bloco de erro (já usa a classe externa .wtss-error-message)
-        // ... (código mantido) ...
+        // Se houver erro, apenas mostra o erro na aba, sem tentar criar o seletor complexo
+        showInfoPanelWTSS(`
+            <h3>📈 Série Temporal WTSS</h3>
+            <div class="wtss-error-message">
+                <strong>Falha ao buscar detalhes da Cobertura: ${result.title}</strong>
+                <p>Detalhes: ${result.error || 'Nenhum atributo disponível.'}</p>
+            </div>
+        `);
         return;
     }
     
@@ -497,7 +503,7 @@ function createWTSSPanel(result, lat, lon) {
             <button onclick="clearWTSSEmpilhados(window.currentWtssResult)" class="action-button secondary-button wtss-full-width-button">
                 Limpar Todos os Gráficos
             </button>
-            <hr class="wtss-divider">
+            <hr class="satelite-popup-divider wtss-divider">
         </div>
     `;
 
@@ -510,11 +516,8 @@ function createWTSSPanel(result, lat, lon) {
         wtssTab.insertAdjacentHTML('afterbegin', controlsPanelHTML);
     }
     
-    // Este é o ÚNICO estilo que pode permanecer em linha, pois é estrutural para o layout da aba. 
-    // Mantenha se for necessário, mas se for a causa, mova para CSS.
-    // wtssTab.style.overflowY = 'auto'; 
+    wtssTab.style.overflowY = 'auto'; 
 }
-
 
 // ========================================================
 // CLIQUE NO MAPA (STAC + WTSS) - LÓGICA DE INTERAÇÃO
