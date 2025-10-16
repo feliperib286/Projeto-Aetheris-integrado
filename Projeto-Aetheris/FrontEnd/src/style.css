@@ -534,3 +534,15 @@ html {
     font-size: 1.2em;
     font-weight: bold;
 }
+/* Adicione esta classe ao seu ./src/style.css */
+
+.product-selectable {
+    /* Torna o item clicável visualmente */
+    cursor: pointer;
+    /* Adicione um efeito visual ao passar o mouse */
+    transition: background-color 0.2s;
+}
+
+.product-selectable:hover {
+    background-color: rgba(74, 89, 255, 0.2); /* Cor de hover suave */
+}
