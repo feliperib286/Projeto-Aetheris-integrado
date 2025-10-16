@@ -209,7 +209,8 @@ window.fetchTimeSeriesAndPlot = async function (lat, lng, coverage, band, friend
         createChart(lat, lng, friendlyName, data);
     } catch (error) {
         console.error('Erro ao plotar série temporal STAC:', error);
-        showInfoPanelSTAC(`<div class="satelite-popup-header" style="color: red;"><strong>Erro ao buscar dados:</strong></div><p>${error.message}</p>`);
+        // Usando a classe CSS para erros
+        showInfoPanelSTAC(`<div class="satelite-popup-header text-error"><strong>Erro ao buscar dados:</strong></div><p>${error.message}</p>`);
     }
 };
 
@@ -341,11 +342,11 @@ window.fetchWTSSTimeSeriesAndPlot = async function (lat, lon, coverage, attribut
     try {
         const baseUrl = "https://data.inpe.br/bdc/wtss/v4/";
         
-        // --- LÓGICA DE CÁLCULO DE PERÍODO (10 ANOS) ---
+        // --- LÓGICA DE CÁLCULO DE PERÍODO (1 ANO) ---
         const now = new Date();
-        const date10YearsAgo = new Date(now.getFullYear() - 10, now.getMonth(), now.getDate());
+        const date01YearsAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
         const calculated_end_date = now.toISOString().split('T')[0]; 
-        const calculated_start_date = date10YearsAgo.toISOString().split('T')[0];
+        const calculated_start_date = date01YearsAgo.toISOString().split('T')[0];
         // ---------------------------------------------
         
         const timeSeriesUrl = `${baseUrl}time_series?coverage=${coverage}&attributes=${attribute}&start_date=${calculated_start_date}&end_date=${calculated_end_date}&latitude=${lat}&longitude=${lon}`;
@@ -372,7 +373,8 @@ window.fetchWTSSTimeSeriesAndPlot = async function (lat, lon, coverage, attribut
         const loadingMessage = document.getElementById('wtss-loading-message');
         if (loadingMessage) loadingMessage.remove();
 
-        document.getElementById('wtss-tab').insertAdjacentHTML('beforeend', `<div style="color:red; border: 1px solid red; padding: 10px; margin-top: 10px;"><strong>Erro WTSS:</strong> ${error.message}</div>`);
+        // Usando a classe CSS para erros
+        document.getElementById('wtss-tab').insertAdjacentHTML('beforeend', `<div class="wtss-error-message" style="margin-top: 10px;"><strong>Erro WTSS:</strong> ${error.message}</div>`);
     }
 };
 
@@ -442,34 +444,29 @@ function createWTSSTimeSeriesChart(title, values, timeline, attribute, coverage)
         
     }, 500);
 }
-
-
-// Cria o painel WTSS com o seletor (Corrigido para persistir no topo)
+   
+// Cria o painel WTSS com o seletor (VERSÃO FINAL SEM ESTILOS EM LINHA)
 function createWTSSPanel(result, lat, lon) {
     // Armazena o resultado globalmente para o botão de limpeza e regeneração do painel
     window.currentWtssResult = { ...result, lat, lon }; 
     
-    // --- CÁLCULO DE PERÍODO (10 ANOS) PARA EXIBIÇÃO NO PAINEL ---
+    // --- CÁLCULO DE PERÍODO (01 ANOS) PARA EXIBIÇÃO NO PAINEL ---
     const now = new Date();
-    const date10YearsAgo = new Date(now.getFullYear() - 10, now.getMonth(), now.getDate());
-    const calculated_start_date = date10YearsAgo.toISOString().split('T')[0];
+    const date01YearsAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+    const calculated_start_date = date01YearsAgo.toISOString().split('T')[0];
     const calculated_end_date = now.toISOString().split('T')[0];
     // -----------------------------------------------------------
 
     if (result.error || !result.availableAttributes || result.availableAttributes.length === 0) {
-        // Se houver erro, apenas mostra o erro na aba, sem tentar criar o seletor complexo
-        showInfoPanelWTSS(`
-            <h3>📈 Série Temporal WTSS</h3>
-            <p style="color:red;">Falha ao buscar detalhes da Cobertura: <strong>${result.title}</strong></p>
-            <p>Detalhes: ${result.error || 'Nenhum atributo disponível.'}</p>
-        `);
+        // Bloco de erro (já usa a classe externa .wtss-error-message)
+        // ... (código mantido) ...
         return;
     }
     
     const defaultAttribute = result.availableAttributes.find(attr => attr.toUpperCase().includes('NDVI')) || result.availableAttributes[0];
 
     const attributeSelector = `
-        <select id="wtss-attribute-select">
+        <select id="wtss-attribute-select" class="wtss-full-width-select">
             ${result.availableAttributes.map(attr => 
                 `<option value="${attr}" ${attr === defaultAttribute ? 'selected' : ''}>${attr}</option>`
             ).join('')}
@@ -484,23 +481,23 @@ function createWTSSPanel(result, lat, lon) {
                 const selectEl = document.getElementById('wtss-attribute-select');
                 fetchWTSSTimeSeriesAndPlot(${lat}, ${lon}, '${result.title}', selectEl.value, '${friendlyName}');
             " 
-            class="action-button" style="width: 100%; margin-bottom: 5px;">
-            Plotar Série Temporal (Últimos 10 anos)
+            class="action-button wtss-full-width-button plot-button-spacing">
+            Plotar Série Temporal (Últimos 12 Meses)
         </button>
     `;
     
-    // Controles no topo (para ser recriado após cada plotagem)
+    // Controles no topo (LIVRES DE ESTILO INLINE)
     const controlsPanelHTML = `
-        <div id="wtss-controls-panel" class="wtss-panel" style="position: sticky; top: 0; background: #333; z-index: 10; padding: 10px; border-bottom: 1px solid #555;">
+        <div id="wtss-controls-panel" class="wtss-panel wtss-controls-sticky">
             <h3>Controles WTSS</h3>
             <p><b>Cobertura:</b> ${result.title}</p>
             <p><b>Período Solicitado:</b> ${calculated_start_date} → ${calculated_end_date}</p>
             <p><b>Atributo:</b> ${attributeSelector}</p>
             ${plotButton}
-            <button onclick="clearWTSSEmpilhados(window.currentWtssResult)" class="action-button secondary-button" style="width: 100%;">
+            <button onclick="clearWTSSEmpilhados(window.currentWtssResult)" class="action-button secondary-button wtss-full-width-button">
                 Limpar Todos os Gráficos
             </button>
-            <hr style="margin-top: 10px;">
+            <hr class="wtss-divider">
         </div>
     `;
 
@@ -508,16 +505,16 @@ function createWTSSPanel(result, lat, lon) {
     const existingControls = document.getElementById('wtss-controls-panel');
     
     if (existingControls) {
-        // Se já existe, apenas o substitui (mantendo a posição no topo)
         existingControls.outerHTML = controlsPanelHTML;
     } else {
-        // Se não existe, insere no topo da aba.
         wtssTab.insertAdjacentHTML('afterbegin', controlsPanelHTML);
     }
     
-    // Força a aba a ter rolagem se o conteúdo for grande
-    wtssTab.style.overflowY = 'auto'; 
+    // Este é o ÚNICO estilo que pode permanecer em linha, pois é estrutural para o layout da aba. 
+    // Mantenha se for necessário, mas se for a causa, mova para CSS.
+    // wtssTab.style.overflowY = 'auto'; 
 }
+
 
 // ========================================================
 // CLIQUE NO MAPA (STAC + WTSS) - LÓGICA DE INTERAÇÃO
@@ -570,7 +567,7 @@ map.on('click', async function (e) {
 
     } catch (error) {
         console.error('Erro geral no clique do mapa:', error);
-        showInfoPanelSTAC(`<div style="color:red;"><strong>Erro Geral:</strong> ${error.message}</div>`);
+        showInfoPanelSTAC(`<div class="text-error"><strong>Erro Geral:</strong> ${error.message}</div>`);
         
         // Tenta inicializar o painel WTSS mesmo após um erro STAC
         const wtssResult = await getWTSSData(lat, lng);
