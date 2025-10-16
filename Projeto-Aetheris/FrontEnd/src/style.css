@@ -432,3 +432,66 @@ html {
 .wtss-divider {
     margin-top: 10px;
 }
+/* Adicione estas classes ao seu ./src/style.css */
+
+/* Container que dá o espaçamento e a linha divisória superior */
+.wtss-chart-container-border {
+    border-top: 1px solid #666;
+    margin-top: 15px;
+    padding-top: 15px;
+}
+
+/* Header que alinha título e botão de fechar */
+.wtss-chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Contêiner que define a altura do canvas */
+.wtss-canvas-wrapper {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
+
+/* Botão de fechar/remover gráfico */
+.remove-chart-btn {
+    cursor: pointer;
+    color: red;
+    font-size: 1.2em;
+    font-weight: bold;
+}
+/* Adicione estas classes ao seu arquivo ./src/style.css */
+
+/* Estilo para o contêiner do canvas STAC (equivalente a height: 300px) */
+.stac-canvas-wrapper {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
+
+/* Estilo para o rodapé do gráfico STAC (equivalente a font-size: 0.7em) */
+.stac-chart-footer {
+    font-size: 0.7em;
+}
+/* Adicione estas classes ao seu arquivo ./src/style.css */
+
+/* Estilo para o contêiner do canvas STAC (equivalente a height: 300px) */
+.stac-canvas-wrapper {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
+
+/* Estilo para o rodapé do gráfico STAC */
+.stac-chart-footer {
+    font-size: 0.7em;
+}
+
+/* Estilos de erro (para garantir que a cor vermelha não seja bloqueada) */
+.text-error {
+    color: #ff4d4d !important;
+    font-weight: bold;
+    /* ... outros estilos de borda/fundo ... */
+}
