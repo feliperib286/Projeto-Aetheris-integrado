@@ -362,3 +362,73 @@ html {
 .aetheris-highlight {
     color: #4a59ff; /* A cor desejada */
 }
+.text-error {
+    color: #ff4d4d !important; /* Um vermelho vibrante */
+    font-weight: bold;
+    padding: 5px;
+    border: 1px solid #ff4d4d;
+    margin: 5px 0;
+    background-color: rgba(255, 77, 77, 0.1); /* Fundo leve para destaque */
+}
+.wtss-error-message {
+    color: red !important;
+    font-weight: bold;
+    padding: 10px;
+    border: 1px solid red;
+    margin: 10px 0;
+    background-color: rgba(255, 0, 0, 0.1);
+}
+
+/* Optional: Style for the multiple selection list items */
+.wtss-select-list-item {
+    font-size: 0.8em;
+    margin-top: 5px;
+}
+/* Adicione esta seção ao seu ./src/style.css */
+
+.wtss-controls-sticky {
+    position: sticky;
+    top: 0;
+    background: #333; /* Cor de fundo deve ser consistente com o painel */
+    z-index: 10;
+    padding: 10px;
+    border-bottom: 1px solid #555;
+}
+/* Estilos auxiliares para o conteúdo do painel */
+.wtss-full-width-button {
+    width: 100%;
+}
+.wtss-divider {
+    margin-top: 10px;
+}
+
+/* Estilos para o painel de controle WTSS fixo */
+.wtss-controls-sticky {
+    position: sticky;
+    top: 0;
+    background: #333; 
+    z-index: 10;
+    padding: 10px;
+    border-bottom: 1px solid #555;
+}
+
+/* Estilos para o alinhamento de 100% de largura */
+.wtss-full-width-select {
+    width: 100%;
+    /* Adicione outros estilos de select aqui, como padding/margin */
+    padding: 8px; /* Mantendo o estilo que estava no JS */
+}
+
+.wtss-full-width-button {
+    width: 100%;
+}
+
+/* Espaçamento entre os botões */
+.plot-button-spacing {
+    margin-bottom: 5px;
+}
+
+/* Linha horizontal */
+.wtss-divider {
+    margin-top: 10px;
+}
