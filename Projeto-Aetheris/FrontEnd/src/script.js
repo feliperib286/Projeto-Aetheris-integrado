@@ -400,10 +400,10 @@ window.showWTSSElectionPanel = async function (lat, lng) {
         <div id="wtss-controls-panel" class="wtss-panel wtss-controls-sticky">
             <h3>1. Escolha a Coleção</h3>
             <p>Selecione um catálogo para plotar:</p>
-            <hr class="satelite-popup-divider">
+           <hr class="satelite-popup-divider">
             <div class="wtss-collection-list">
                 ${result.collections.map(col => `
-                    <div class="product-info-block" style="cursor:pointer;"
+                    <div class="product-info-block product-selectable" 
                         onclick="showWTSSAttributeSelection('${col.title}', ${lat}, ${lng})">
                         <strong class="product-title">🛰️ ${col.title}</strong>
                         <p style="font-size: 0.8em;">Atributos: ${col.availableAttributes.slice(0, 3).join(', ')}${col.availableAttributes.length > 3 ? '...' : ''}</p>
@@ -411,6 +411,7 @@ window.showWTSSElectionPanel = async function (lat, lng) {
                 `).join('')}
             </div>
             <hr class="satelite-popup-divider wtss-divider">
+
             <button onclick="clearWTSSEmpilhados(window.currentWtssResult)" class="action-button secondary-button wtss-full-width-button">
                 Limpar Todos os Gráficos
             </button>
